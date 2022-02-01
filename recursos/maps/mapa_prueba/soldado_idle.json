@@ -1,0 +1,14 @@
+{ "columns":2,
+ "image":"..\/..\/sprites\/soldados\/soldado_idle.png",
+ "imageheight":102,
+ "imagewidth":110,
+ "margin":0,
+ "name":"soldado_idle",
+ "spacing":0,
+ "tilecount":4,
+ "tiledversion":"1.7.2",
+ "tileheight":48,
+ "tilewidth":48,
+ "type":"tileset",
+ "version":"1.6"
+}

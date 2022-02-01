@@ -1,0 +1,14 @@
+{ "columns":3,
+ "image":"soldado_idle.png",
+ "imageheight":102,
+ "imagewidth":110,
+ "margin":0,
+ "name":"soldado_idle",
+ "spacing":0,
+ "tilecount":9,
+ "tiledversion":"1.7.2",
+ "tileheight":34,
+ "tilewidth":34,
+ "type":"tileset",
+ "version":"1.6"
+}
