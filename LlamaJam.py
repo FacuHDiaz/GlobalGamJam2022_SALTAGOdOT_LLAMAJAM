@@ -1,7 +1,7 @@
 import arcade
 import math
 import os
-import random
+
 
 # Constantes
 ANCHO_PANTALLA = 1000
@@ -10,7 +10,7 @@ TITULO_PANTALLA = "Llama Jam"
 
 #Constantes usadas para escalar nuestros sprites de su tamaño original
 ESCALA_PERSONAJE = 1
-ESCALA_BALDOZA = 1.5
+ESCALA_BALDOZA = 2
 ESCALA_MONEDA = 0.5
 TAMANIO_PIXEL_SPRITE = 128
 TAMANIO_PIXEL_CUADRICULA = TAMANIO_PIXEL_SPRITE * ESCALA_BALDOZA
@@ -18,7 +18,7 @@ TAMANIO_PIXEL_CUADRICULA = TAMANIO_PIXEL_SPRITE * ESCALA_BALDOZA
 # Velocidad de movimiento del jugador, en pixeles por cuadro
 VELOCIDAD_MOVIMIENTO_JUGADOR = 7
 GRAVEDAD = 1.5
-VELOCIDAD_SALTO_JUGADOR = 20
+VELOCIDAD_SALTO_JUGADOR = 25
 
 # Posición de inicio del jugador
 JUGADOR_INICIO_X = 64
@@ -27,6 +27,12 @@ JUGADOR_INICIO_Y = 225
 # Constantes usadas para seguir si el jugador esta mirando a la derecha o izquierda
 RIGHT_FACING = 0
 LEFT_FACING = 1
+
+# Shooting Constants
+SPRITE_SCALING_LASER = 0.8
+SHOOT_SPEED = 15
+BULLET_SPEED = 12
+BULLET_DAMAGE = 50
 
 # Capas de nuestro mapas tilemap
 #CAPA_NOMBRE_PLATAFORMA = "Platforms"
@@ -38,7 +44,75 @@ CAPA_NOMBRE_FONDO = "Fondo"
 #LAYER_NAME_MOVING_PLATFORMS = "Moving Platforms"
 LAYER_NAME_PLAYER = "Player"
 CAPA_NOMBRE_SUELO = "Suelo"
-LAYER_NAME_ENEMIES = "Enemigo"
+CAPA_NOMBRE_ENEMIGOS = "Enemigos"
+LAYER_NAME_BULLETS = "Bullets"
+CAPA_NOMBRE_FINAL = "Final"
+
+class InstructionView(arcade.View):
+    """ View to show instructions """
+
+    def on_show(self):
+        """ This is run once when we switch to this view """
+        arcade.set_background_color(arcade.csscolor.DARK_SLATE_BLUE)
+
+        # Reset the viewport, necessary if we have a scrolling game and we need
+        # to reset the viewport back to the start so we can see what we draw.
+
+    def on_draw(self):
+        """ Draw this view """
+        self.clear()
+        arcade.draw_text("Llama Jam", ANCHO_PANTALLA / 2, ALTO_PANTALLA / 2,
+                         arcade.color.WHITE, font_size=50, anchor_x="center")
+        arcade.draw_text("Click to advance", ANCHO_PANTALLA / 2, ALTO_PANTALLA / 2-75,
+                         arcade.color.WHITE, font_size=20, anchor_x="center")
+
+    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        """ If the user presses the mouse button, start the game. """
+        game_view = GameView()
+        game_view.setup()
+        self.window.show_view(game_view)
+
+class GameOverView(arcade.View):
+    """Class to manage the game over view"""
+
+    def on_show(self):
+        """Called when switching to this view"""
+        arcade.set_background_color(arcade.color.BLACK)
+
+    def on_draw(self):
+        """Draw the game over view"""
+        arcade.start_render()
+        arcade.draw_text("Game Over - Click to restart",ANCHO_PANTALLA / 2,ALTO_PANTALLA / 2,arcade.color.RED_BROWN,font_size=50,anchor_x="center")
+        arcade.draw_text("Game Over - Click to restart",ANCHO_PANTALLA / 2,ALTO_PANTALLA / 2,arcade.color.RED_BROWN,font_size=50,anchor_x="center")
+
+    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        """Use a mouse press to advance to the 'game' view."""
+        game_view = GameView()
+        game_view.setup()
+        self.window.show_view(game_view)
+
+class FinalGameView(arcade.View):
+    """Class to manage the game over view"""
+
+    def on_show(self):
+        """Called when switching to this view"""
+        arcade.set_background_color(arcade.color.BLACK)
+
+    def on_draw(self):
+        """Draw the game over view"""
+        self.clear()
+        arcade.draw_text("GRACIAS POR JUGARd", ANCHO_PANTALLA / 2, ALTO_PANTALLA / 2,
+                         arcade.color.WHITE, font_size=50, anchor_x="center")
+        arcade.draw_text("Click to advance", ANCHO_PANTALLA / 2, ALTO_PANTALLA / 2-75,
+                         arcade.color.WHITE, font_size=20, anchor_x="center")
+
+
+    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        """Use a mouse press to advance to the 'game' view."""
+        game_view = GameView()
+        game_view.setup()
+        self.window.show_view(game_view)
+
 
 
 def load_texture_pair(filename):
@@ -95,17 +169,22 @@ class Enemigo(Entity):
         # Setup parent class
         super().__init__(name_folder, name_file)
 
+        self.health = 0
+
+
 class Soldado(Enemigo):
     def __init__(self):
 
         # Set up parent class
         super().__init__("soldados", "soldado")
+        self.health = 100
 
 class Tanque(Enemigo):
     def __init__(self):
 
         # Set up parent class
         super().__init__("tanque", "tanque")
+        self.health = 200
 
 
 class PlayerCharacter(Entity):
@@ -156,13 +235,8 @@ class PlayerCharacter(Entity):
             self.texture = self.idle_texture_pair[self.character_face_direction]
             return
 
-        # Walking animation
-        #self.cur_texture += 1
-        #if self.cur_texture > 2:
-        #    self.cur_texture = 0
-        #self.texture = self.walk_textures[self.cur_texture][self.character_face_direction]
 
-class MyGame(arcade.Window):
+class GameView(arcade.View):
     """
     Main application class.
     """
@@ -170,7 +244,7 @@ class MyGame(arcade.Window):
     def __init__(self):
 
         # Llama a las clases padre y configura la ventana
-        super().__init__(ANCHO_PANTALLA, ALTO_PANTALLA, TITULO_PANTALLA)
+        super().__init__()
 
         # Establecer la ruta para comenzar con este programa
         file_path = os.path.dirname(os.path.abspath(__file__))
@@ -182,6 +256,7 @@ class MyGame(arcade.Window):
         self.up_pressed = False
         self.down_pressed = False
         self.jump_needs_reset = False
+        self.shoot_pressed = False
 
         # Nuestro objeto de Tilemap
         self.tile_map = None
@@ -199,7 +274,11 @@ class MyGame(arcade.Window):
         self.camera = None
 
         # Donde esta el borde derecho del mapa
-        #self.end_of_map = 0
+        self.end_of_map = 0
+
+        # Shooting mechanics
+        self.can_shoot = False
+        self.shoot_timer = 0
 
         # Level
         #self.level = 1
@@ -208,7 +287,8 @@ class MyGame(arcade.Window):
         self.collect_coin_sound = arcade.load_sound(":resources:sounds/coin1.wav")
         self.jump_sound = arcade.load_sound(":resources:sounds/jump1.wav")
         self.game_over = arcade.load_sound(":resources:sounds/gameover1.wav")
-
+        self.shoot_sound = arcade.load_sound(":resources:sounds/hurt5.wav")
+        self.hit_sound = arcade.load_sound(":resources:sounds/hit5.wav")
 
         arcade.set_background_color(arcade.csscolor.CORNFLOWER_BLUE)
 
@@ -216,10 +296,10 @@ class MyGame(arcade.Window):
         """La configuracion del juego va aqui. Llama a esta funcion para reiniciar el juego."""
 
         # Conf de la camara
-        self.camera = arcade.Camera(self.width, self.height)
+        self.camera = arcade.Camera(self.window.width, self.window.height)
 
         # Nombre del mapa
-        map_name = "recursos/maps/llama finaltmx.tmx"
+        map_name = "recursos/maps/llama_finaltmx.json"
 
         # Opciones específicas de capa para el Tilemap
         layer_options = {
@@ -247,6 +327,10 @@ class MyGame(arcade.Window):
         # del mapa como SpriteLists en la escena en el orden correcto.
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
 
+        # Calculate the right edge of the my_map in pixels
+        self.end_of_map = self.tile_map.width * TAMANIO_PIXEL_CUADRICULA
+
+
         # Agregue la lista de Sprites del jugador antes de la capa "Primer plano". Esto hará que el primer plano 
         # dibujarse detrás del jugador, haciendo que parezca estar frente al jugador. 
         # La configuración antes de usar scene.add_sprite nos permite definir dónde está SpriteList 
@@ -261,36 +345,40 @@ class MyGame(arcade.Window):
         self.player_sprite.center_y = JUGADOR_INICIO_Y 
         self.scene.add_sprite(LAYER_NAME_PLAYER,self.player_sprite)
 
-        # --- Cargar en un mapa desde el tiled editor ---
-
-        # -- Enemies
-        #enemies_layer = self.tile_map.object_lists[LAYER_NAME_ENEMIES]
-
-        enemylist = ["soldado","tanque"]
-
-        enemy_type = random.choice(enemylist)
-
-
-
-        if enemy_type == "soldado":
-            enemy = Soldado()
-        elif enemy_type == "tanque":
-                enemy = Tanque()
-        else:
-            raise Exception(f"Unknown enemy type {enemy_type}.")
-        for x in range(0, 1250, 64):
-            enemy.center_x = x
-            enemy.center_y = JUGADOR_INICIO_Y 
-
-        self.scene.add_sprite(LAYER_NAME_ENEMIES, enemy)
-
-        # Calcule el borde derecho de my_map en píxeles
+        # Calcular el borde derecho de my_map en píxeles
         self.end_of_map = self.tile_map.width * TAMANIO_PIXEL_CUADRICULA
 
-        # --- Otras cosas
-        # Conf el color del fondo
-        if self.tile_map.background_color:
-            arcade.set_background_color(self.tile_map.background_color)
+        # Shooting mechanics
+        self.can_shoot = True
+        self.shoot_timer = 0
+
+        # --- Cargar en un mapa desde el tiled editor ---
+        
+        # -- Enemies
+      
+        enemies_layer = self.tile_map.object_lists[CAPA_NOMBRE_ENEMIGOS]
+
+        for my_object in enemies_layer:
+            cartesian = self.tile_map.get_cartesian(
+                my_object.shape[0], my_object.shape[1]
+            )
+            enemy_type = my_object.properties["type"]
+            if enemy_type == "soldado":
+                enemy = Soldado()
+            elif enemy_type == "tanque":
+                enemy = Tanque()
+            else:
+                raise Exception(f"Unknown enemy type {enemy_type}.")
+            enemy.center_x = math.floor(
+                cartesian[0] * ESCALA_BALDOZA * self.tile_map.tile_width
+            )
+            enemy.center_y = math.floor(
+                (cartesian[1] + 1) * (self.tile_map.tile_height * ESCALA_BALDOZA)
+            )
+            self.scene.add_sprite(CAPA_NOMBRE_ENEMIGOS, enemy)
+
+         # Add bullet spritelist to Scene
+        self.scene.add_sprite_list(LAYER_NAME_BULLETS)
 
         # Creamos el 'motor de fisicas'
         self.physics_engine = arcade.PhysicsEnginePlatformer(
@@ -343,7 +431,6 @@ class MyGame(arcade.Window):
         #else:
         #    self.player_sprite.change_x = 0
 
-
     def on_key_press(self, key, modifiers):
         """Se llama cada vez que se presiona una tecla."""
 
@@ -364,6 +451,9 @@ class MyGame(arcade.Window):
         elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.player_sprite.change_x = VELOCIDAD_MOVIMIENTO_JUGADOR
 
+        if key == arcade.key.SPACE:
+            self.shoot_pressed = True
+
     def on_key_release(self, key, modifiers):
         """Se llama cuando el usario suelta la tecla."""
 
@@ -375,6 +465,9 @@ class MyGame(arcade.Window):
             self.player_sprite.change_x = 0
         elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.player_sprite.change_x = 0
+
+        if key == arcade.key.SPACE:
+            self.shoot_pressed = False
 
     def center_camera_to_player(self):
         screen_center_x = self.player_sprite.center_x - (self.camera.viewport_width / 2)
@@ -441,12 +534,66 @@ class MyGame(arcade.Window):
         #    coin.remove_from_sprite_lists()
         #    # Reproduce un sonido
         #    arcade.play_sound(self.collect_coin_sound)
+        for bullet in self.scene[LAYER_NAME_BULLETS]:
+            hit_list = arcade.check_for_collision_with_lists(
+                bullet,
+                [
+                    self.scene[CAPA_NOMBRE_ENEMIGOS]
+                ],
+            )
+            if hit_list:
+                bullet.remove_from_sprite_lists()
+
+                for collision in hit_list:
+                    if (
+                        self.scene[CAPA_NOMBRE_ENEMIGOS]
+                        in collision.sprite_lists
+                    ):
+                        # The collision was with an enemy
+                        collision.health -= BULLET_DAMAGE
+
+                        if collision.health <= 0:
+                            collision.remove_from_sprite_lists()
+                            #self.score += 100
+
+                        # Hit sound
+                        arcade.play_sound(self.hit_sound)
+
+        player_collision_list = arcade.check_for_collision_with_lists(
+            self.player_sprite,
+            [
+                #self.scene[LAYER_NAME_COINS],
+                self.scene[CAPA_NOMBRE_ENEMIGOS]
+            ],
+        )
 #
-        ## El jugador se callo del mapa?
-        #if self.player_sprite.center_y < -100:
-        #    self.player_sprite.center_x = JUGADOR_INICIO_Y
-        #    self.player_sprite.center_y = JUGADOR_INICIO_Y
-        #    arcade.play_sound(self.game_over)
+        # Loop through each coin we hit (if any) and remove it
+        for collision in player_collision_list:
+#
+            if self.scene[CAPA_NOMBRE_ENEMIGOS] in collision.sprite_lists:
+                arcade.play_sound(self.game_over)
+                game_over = GameOverView()
+                self.window.show_view(game_over)
+                return
+
+            else:
+                # Figure out how many points this coin is worth
+                if "Points" not in collision.properties:
+                    print("Warning, collected a coin without a Points property.")
+                else:
+                    points = int(collision.properties["Points"])
+                    #self.score += points
+#
+                # Remove the coin
+                collision.remove_from_sprite_lists()
+                arcade.play_sound(self.collect_coin_sound)
+
+
+        # El jugador se callo del mapa?
+        if self.player_sprite.center_y < -100:
+            arcade.play_sound(self.game_over)
+            game_over = GameOverView()
+            self.window.show_view(game_over)
 #
         ## El jugador toco algo que no deberia?
         #if arcade.check_for_collision_with_list(
@@ -460,20 +607,49 @@ class MyGame(arcade.Window):
         #    arcade.play_sound(self.game_over)
 
         # Ver si el usuario llego al final del nivel
-        #if self.player_sprite.center_x >= self.end_of_map:
-        #    # Advance to the next level
-        #    self.level += 1
-#
+        if self.player_sprite.center_x >= self.end_of_map:
+            # Advance to the next level
         #    # Load the next level
-        #    self.setup()
+            game_over = GameOverView()
+            self.window.show_view(game_over)
 
+        if self.can_shoot:
+            if self.shoot_pressed:
+                arcade.play_sound(self.shoot_sound)
+                bullet = arcade.Sprite(
+                    ":resources:images/space_shooter/laserBlue01.png",
+                    SPRITE_SCALING_LASER,
+                )
+
+                if self.player_sprite.facing_direction == RIGHT_FACING:
+                    bullet.change_x = BULLET_SPEED
+                else:
+                    bullet.change_x = -BULLET_SPEED
+
+                bullet.center_x = self.player_sprite.center_x
+                bullet.center_y = self.player_sprite.center_y
+
+                self.scene.add_sprite(LAYER_NAME_BULLETS, bullet)
+
+                self.can_shoot = False
+        else:
+            self.shoot_timer += 1
+            if self.shoot_timer == SHOOT_SPEED:
+                self.can_shoot = True
+                self.shoot_timer = 0
+
+        self.scene.update([LAYER_NAME_BULLETS])
         # coloca la camara
         self.center_camera_to_player()
 
 def main():
     """Main function"""
-    window = MyGame()
-    window.setup()
+    #window = MyGame()
+    #window.setup()
+    #arcade.run()
+    window = arcade.Window(ANCHO_PANTALLA, ALTO_PANTALLA, TITULO_PANTALLA)
+    start_view = InstructionView()
+    window.show_view(start_view)
     arcade.run()
 
 

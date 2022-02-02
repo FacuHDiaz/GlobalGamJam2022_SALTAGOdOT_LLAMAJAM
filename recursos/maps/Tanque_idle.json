@@ -1,0 +1,14 @@
+{ "columns":4,
+ "image":"..\/sprites\/tanque\/Tanque_idle.png",
+ "imageheight":144,
+ "imagewidth":144,
+ "margin":0,
+ "name":"Tanque_idle",
+ "spacing":0,
+ "tilecount":16,
+ "tiledversion":"1.7.2",
+ "tileheight":32,
+ "tilewidth":32,
+ "type":"tileset",
+ "version":"1.6"
+}
